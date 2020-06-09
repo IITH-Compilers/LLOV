@@ -1,4 +1,6 @@
 // RUN: clang %loadLLOV %s -o /dev/null 2>&1 | FileCheck %s
+// XFAIL: *
+// clang-10 does not generate TLS wrapper function calls
 #include <omp.h>
 #define M 200
 #define N 200

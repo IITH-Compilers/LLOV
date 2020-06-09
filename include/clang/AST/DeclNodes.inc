@@ -83,6 +83,12 @@ FRIENDTEMPLATE(FriendTemplate, Decl)
 IMPORT(Import, Decl)
 #undef IMPORT
 
+#ifndef LIFETIMEEXTENDEDTEMPORARY
+#  define LIFETIMEEXTENDEDTEMPORARY(Type, Base) DECL(Type, Base)
+#endif
+LIFETIMEEXTENDEDTEMPORARY(LifetimeExtendedTemporary, Decl)
+#undef LIFETIMEEXTENDEDTEMPORARY
+
 #ifndef LINKAGESPEC
 #  define LINKAGESPEC(Type, Base) DECL(Type, Base)
 #endif
@@ -184,6 +190,12 @@ ABSTRACT_DECL(TEMPLATE(Template, NamedDecl))
 #endif
 BUILTINTEMPLATE(BuiltinTemplate, TemplateDecl)
 #undef BUILTINTEMPLATE
+
+#ifndef CONCEPT
+#  define CONCEPT(Type, Base) TEMPLATE(Type, Base)
+#endif
+CONCEPT(Concept, TemplateDecl)
+#undef CONCEPT
 
 #ifndef REDECLARABLETEMPLATE
 #  define REDECLARABLETEMPLATE(Type, Base) TEMPLATE(Type, Base)
@@ -497,6 +509,12 @@ ENUMCONSTANT(EnumConstant, ValueDecl)
 INDIRECTFIELD(IndirectField, ValueDecl)
 #undef INDIRECTFIELD
 
+#ifndef OMPDECLAREMAPPER
+#  define OMPDECLAREMAPPER(Type, Base) VALUE(Type, Base)
+#endif
+OMPDECLAREMAPPER(OMPDeclareMapper, ValueDecl)
+#undef OMPDECLAREMAPPER
+
 #ifndef OMPDECLAREREDUCTION
 #  define OMPDECLAREREDUCTION(Type, Base) VALUE(Type, Base)
 #endif
@@ -516,6 +534,18 @@ DECL_RANGE(Value, Binding, UnresolvedUsingValue)
 DECL_RANGE(Named, Label, UnresolvedUsingValue)
 
 #undef NAMED
+
+#ifndef OMPALLOCATE
+#  define OMPALLOCATE(Type, Base) DECL(Type, Base)
+#endif
+OMPALLOCATE(OMPAllocate, Decl)
+#undef OMPALLOCATE
+
+#ifndef OMPREQUIRES
+#  define OMPREQUIRES(Type, Base) DECL(Type, Base)
+#endif
+OMPREQUIRES(OMPRequires, Decl)
+#undef OMPREQUIRES
 
 #ifndef OMPTHREADPRIVATE
 #  define OMPTHREADPRIVATE(Type, Base) DECL(Type, Base)
@@ -540,6 +570,12 @@ PRAGMACOMMENT(PragmaComment, Decl)
 #endif
 PRAGMADETECTMISMATCH(PragmaDetectMismatch, Decl)
 #undef PRAGMADETECTMISMATCH
+
+#ifndef REQUIRESEXPRBODY
+#  define REQUIRESEXPRBODY(Type, Base) DECL(Type, Base)
+#endif
+REQUIRESEXPRBODY(RequiresExprBody, Decl)
+#undef REQUIRESEXPRBODY
 
 #ifndef STATICASSERT
 #  define STATICASSERT(Type, Base) DECL(Type, Base)
@@ -582,8 +618,10 @@ DECL_CONTEXT(Export)
 DECL_CONTEXT(ExternCContext)
 DECL_CONTEXT(LinkageSpec)
 DECL_CONTEXT(Namespace)
+DECL_CONTEXT(OMPDeclareMapper)
 DECL_CONTEXT(OMPDeclareReduction)
 DECL_CONTEXT(ObjCMethod)
+DECL_CONTEXT(RequiresExprBody)
 DECL_CONTEXT(TranslationUnit)
 #undef DECL_CONTEXT
 #undef DECL_CONTEXT_BASE

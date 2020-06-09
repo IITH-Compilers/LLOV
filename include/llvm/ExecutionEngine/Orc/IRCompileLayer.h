@@ -1,9 +1,8 @@
 //===- IRCompileLayer.h -- Eagerly compile IR for JIT -----------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 //
@@ -28,26 +27,41 @@ class Module;
 
 namespace orc {
 
-class IRCompileLayer2 : public IRLayer {
+class IRCompileLayer : public IRLayer {
 public:
-  using CompileFunction =
-      std::function<Expected<std::unique_ptr<MemoryBuffer>>(Module &)>;
+  class IRCompiler {
+  public:
+    IRCompiler(IRMaterializationUnit::ManglingOptions MO) : MO(std::move(MO)) {}
+    virtual ~IRCompiler();
+    const IRMaterializationUnit::ManglingOptions &getManglingOptions() const {
+      return MO;
+    }
+    virtual Expected<std::unique_ptr<MemoryBuffer>> operator()(Module &M) = 0;
+
+  protected:
+    IRMaterializationUnit::ManglingOptions &manglingOptions() { return MO; }
+
+  private:
+    IRMaterializationUnit::ManglingOptions MO;
+  };
 
   using NotifyCompiledFunction =
-      std::function<void(VModuleKey K, std::unique_ptr<Module>)>;
+      std::function<void(VModuleKey K, ThreadSafeModule TSM)>;
 
-  IRCompileLayer2(ExecutionSession &ES, ObjectLayer &BaseLayer,
-                  CompileFunction Compile);
+  IRCompileLayer(ExecutionSession &ES, ObjectLayer &BaseLayer,
+                 std::unique_ptr<IRCompiler> Compile);
+
+  IRCompiler &getCompiler() { return *Compile; }
 
   void setNotifyCompiled(NotifyCompiledFunction NotifyCompiled);
 
-  void emit(MaterializationResponsibility R, VModuleKey K,
-            std::unique_ptr<Module> M) override;
+  void emit(MaterializationResponsibility R, ThreadSafeModule TSM) override;
 
 private:
   mutable std::mutex IRLayerMutex;
   ObjectLayer &BaseLayer;
-  CompileFunction Compile;
+  std::unique_ptr<IRCompiler> Compile;
+  const IRMaterializationUnit::ManglingOptions *ManglingOpts;
   NotifyCompiledFunction NotifyCompiled = NotifyCompiledFunction();
 };
 
@@ -57,16 +71,26 @@ private:
 /// object file and adds this module file to the layer below, which must
 /// implement the object layer concept.
 template <typename BaseLayerT, typename CompileFtor>
-class IRCompileLayer {
+class LegacyIRCompileLayer {
 public:
   /// Callback type for notifications when modules are compiled.
   using NotifyCompiledCallback =
       std::function<void(VModuleKey K, std::unique_ptr<Module>)>;
 
-  /// Construct an IRCompileLayer with the given BaseLayer, which must
+  /// Construct an LegacyIRCompileLayer with the given BaseLayer, which must
   ///        implement the ObjectLayer concept.
-  IRCompileLayer(
-      BaseLayerT &BaseLayer, CompileFtor Compile,
+  LLVM_ATTRIBUTE_DEPRECATED(
+      LegacyIRCompileLayer(
+          BaseLayerT &BaseLayer, CompileFtor Compile,
+          NotifyCompiledCallback NotifyCompiled = NotifyCompiledCallback()),
+      "ORCv1 layers (layers with the 'Legacy' prefix) are deprecated. Please "
+      "use "
+      "the ORCv2 IRCompileLayer instead");
+
+  /// Legacy layer constructor with deprecation acknowledgement.
+  LegacyIRCompileLayer(
+      ORCv1DeprecationAcknowledgement, BaseLayerT &BaseLayer,
+      CompileFtor Compile,
       NotifyCompiledCallback NotifyCompiled = NotifyCompiledCallback())
       : BaseLayer(BaseLayer), Compile(std::move(Compile)),
         NotifyCompiled(std::move(NotifyCompiled)) {}
@@ -82,7 +106,10 @@ public:
   /// Compile the module, and add the resulting object to the base layer
   ///        along with the given memory manager and symbol resolver.
   Error addModule(VModuleKey K, std::unique_ptr<Module> M) {
-    if (auto Err = BaseLayer.addObject(std::move(K), Compile(*M)))
+    auto Obj = Compile(*M);
+    if (!Obj)
+      return Obj.takeError();
+    if (auto Err = BaseLayer.addObject(std::move(K), std::move(*Obj)))
       return Err;
     if (NotifyCompiled)
       NotifyCompiled(std::move(K), std::move(M));
@@ -124,8 +151,14 @@ private:
   NotifyCompiledCallback NotifyCompiled;
 };
 
-} // end namespace orc
+template <typename BaseLayerT, typename CompileFtor>
+LegacyIRCompileLayer<BaseLayerT, CompileFtor>::LegacyIRCompileLayer(
+    BaseLayerT &BaseLayer, CompileFtor Compile,
+    NotifyCompiledCallback NotifyCompiled)
+    : BaseLayer(BaseLayer), Compile(std::move(Compile)),
+      NotifyCompiled(std::move(NotifyCompiled)) {}
 
+} // end namespace orc
 } // end namespace llvm
 
 #endif // LLVM_EXECUTIONENGINE_ORC_IRCOMPILINGLAYER_H
