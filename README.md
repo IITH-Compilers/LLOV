@@ -10,6 +10,24 @@ compile time.
 Unlike other race detection tool, LLOV can mark a region of code as Data 
 Race Free.
 
+## Requirements
+We use git LFS as the size of binaries corssed 100 MB.  
+Install git-lfs package and enable git lfs hooks.  
+For Ubuntu and Debian-  
+```
+sudo apt-get install git-lfs
+git lfs install
+```
+These steps are required before fetching the repository.  
+
+
+To run the regression rests, python package lit is required.  
+```
+python -m pip install --upgrade --force-reinstall pip
+pip install lit --user
+```
+
+
 ## How to Run LLOV
 #### Running LLOV on OpenMP C/C++ code from clang
 ```
