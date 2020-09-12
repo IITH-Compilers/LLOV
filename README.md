@@ -29,6 +29,10 @@ pip install lit --user
 
 
 ## How to Run LLOV
+If OpenMP is not installed on your system or the path is not properly set,  
+you can point to the included header & lib with additional compiler flags.  
+`-Iinclude/ -Llib/`
+
 #### Running LLOV on OpenMP C/C++ code from clang
 ```
 ./bin/clang -Xclang -disable-O0-optnone -Xclang -load -Xclang ./lib/OpenMPVerify.so  \
